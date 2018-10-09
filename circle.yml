@@ -1,0 +1,54 @@
+version: 2
+
+jobs:
+  test:
+    docker:
+      - image: circleci/python:3.6.3
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Setup Python virtual environment
+          command: |
+            python3 -m venv venv
+            echo "source $(pwd)/venv/bin/activate" >> $BASH_ENV
+      - run: pip install -r requirements.txt
+      - save_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          paths:
+            - "venv"
+      - run: python3 -m pytest .
+
+  build:
+    docker:
+      - image: docker:17.12.0-ce
+    steps:
+      - run: apk update
+      - run: apk upgrade
+      - run: apk add --no-cache bash git openssh build-base make 
+      - checkout
+      - setup_remote_docker
+      - run: docker build -t fatwhaleltd/asana_discord .
+      - run: docker login --username=$DOCKER_USER --password=$DOCKER_PASS
+      - run: docker push fatwhaleltd/asana_discord:latest
+      - run:
+          shell: /bin/bash
+          command: |
+            if [[ $CIRCLE_TAG =~ ^prod-.*$ ]]; then \
+            docker tag fatwhaleltd/asana_discord fatwhaleltd/asana_discord:prod && \
+            docker push fatwhaleltd/asana_discord:prod; fi
+
+workflows:
+  version: 2
+  pytest:
+    jobs:
+      - test
+      - build:
+          filters:
+            branches:
+              only:
+                - master
+            tags:
+              only:
+                - /prod-.*/
