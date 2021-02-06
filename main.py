@@ -38,7 +38,7 @@ def project_starter(linker, logger, asana_token, asana_workspace):
 
         for project in projects:
             # Check if we need to start the project
-            if project["id"] in started_projects:
+            if project["gid"] in started_projects:
                 continue
             else:
                 listener_thread = threading.Thread(
@@ -53,19 +53,18 @@ def project_starter(linker, logger, asana_token, asana_workspace):
                     }
                 ) 
                 listener_thread.start()
-                started_projects.append(project["id"])
+                started_projects.append(project["gid"])
                 time.sleep(5) # Giving 5s of time space between each thread
         loops += 1
         time.sleep(60)
 
 @click.command()
 @click.argument('mode',             envvar="MODE",              type=click.STRING)
-@click.argument('discord_token',    envvar="DISCORD_TOKEN",     type=click.STRING)
-@click.argument('discord_channel',  envvar="DISCORD_CHANNEL",   type=click.INT)
+@click.argument('discord_webhook_url',    envvar="DISCORD_WEBHOOK_URL",     type=click.STRING)
 @click.argument('asana_token',      envvar="ASANA_TOKEN",       type=click.STRING)
-@click.argument('asana_workspace',  envvar="ASANA_WORKSPACE",   type=click.INT)
+@click.argument('asana_workspace',  envvar="ASANA_WORKSPACE",   type=click.STRING)
 @click.argument('sentry_url',       envvar="SENTRY_URL",        type=click.STRING)
-def main(mode, discord_token, discord_channel, asana_token, asana_workspace, sentry_url):
+def main(mode, discord_webhook_url, asana_token, asana_workspace, sentry_url):
     """
     Starts AsanaBot and AsanaListener in separated threads. 
 
@@ -101,8 +100,7 @@ def main(mode, discord_token, discord_channel, asana_token, asana_workspace, sen
             'target_type': "bot",
             'linker': linker,
             'logger': logger,
-            'discord_token': discord_token,
-            'discord_channel': discord_channel,
+            'discord_webhook_url': discord_webhook_url,
             'asana_token': asana_token,
             'asana_workspace': asana_workspace
         }

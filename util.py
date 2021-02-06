@@ -70,8 +70,7 @@ def retry_wrapper(target, target_type, **kwargs):
             target(
                 kwargs["linker"], 
                 kwargs["logger"], 
-                kwargs["discord_token"], 
-                kwargs["discord_channel"],
+                kwargs["discord_webhook_url"], 
                 kwargs["asana_token"], 
                 kwargs["asana_workspace"]
             )

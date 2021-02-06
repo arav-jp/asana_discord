@@ -45,7 +45,7 @@ class AsanaListener:
             
         # Get all the tasks in the project
         tasks = self.asana_client.tasks.find_by_project(
-            project['id'], 
+            project["gid"], 
             iterator_type=None, 
             opt_expand="name,projects,parent,workspace,id,assignee,assignee_status,completed,completed_at,due_on,due_at,external,modified_at"
         )
@@ -53,7 +53,7 @@ class AsanaListener:
         # Add all the tasks to the tasks list
         for task in tasks:
             task["initial"] = True
-            self.tasks[task["id"]] = task
+            self.tasks[task["gid"]] = task
 
         # Loop that checks for new tasks, completion of tasks and overdue of tasks.
         loops = 0 
@@ -68,7 +68,7 @@ class AsanaListener:
                 
             # Get all the tasks in the project
             tasks = self.asana_client.tasks.find_by_project(
-                project['id'], 
+                project["gid"], 
                 iterator_type=None, 
                 opt_expand="name,projects,parent,workspace,id,assignee,assignee_status,completed,completed_at,due_on,due_at,external,modified_at"
             )
@@ -76,34 +76,34 @@ class AsanaListener:
             # Update the tasks list
             for task in tasks:
                 # Check if the task exists already in the current tasks list
-                if task["id"] in self.tasks:
+                if task["gid"] in self.tasks:
                     # Check if it's completed
                     if task["completed"]:
                         # Check if we already have sent the announcement
-                        if task["id"] in self.completed_tasks:
+                        if task["gid"] in self.completed_tasks:
                             continue
 
                         # Checks that the task was just completed
-                        saved_task_completed = self.tasks[task["id"]]["completed"]
+                        saved_task_completed = self.tasks[task["gid"]]["completed"]
                         if not saved_task_completed:
                             self.linker.push("completed", task)
-                            self.completed_tasks.append(task["id"])
+                            self.completed_tasks.append(task["gid"])
                             
                         # Checks that the task was saved completed
-                        elif saved_task_completed and not self.tasks[task["id"]].get("initial"):
+                        elif saved_task_completed and not self.tasks[task["gid"]].get("initial"):
                             self.linker.push("completed", task)
-                            self.completed_tasks.append(task["id"])
+                            self.completed_tasks.append(task["gid"])
 
                     # Check if it's overdue
                     elif task["due_on"]:
                         
                         # Check if we already have sent the announcement
-                        if task["id"] in self.overdued_tasks:
+                        if task["gid"] in self.overdued_tasks:
                             continue
                         
                         # Check the timestamp depending of the deadline style
                         due_on_len = len(task["due_on"])
-                        initial_task = self.tasks[task["id"]].get("initial")
+                        initial_task = self.tasks[task["gid"]].get("initial")
                         
                         if due_on_len == 10 and not initial_task:
                             task_timestamp = int(datetime.datetime.strptime(task["due_on"], "%Y-%m-%d").timestamp())
@@ -111,11 +111,11 @@ class AsanaListener:
 
                             # Check if the overdue is correct
                             if int(time.time()) > real_overdue_timestamp:
-                                self.overdued_tasks.append(task["id"])
+                                self.overdued_tasks.append(task["gid"])
                                 self.linker.push("overdue", task)
                 else:
                     # Save the new task
-                    self.tasks[task["id"]] = task
+                    self.tasks[task["gid"]] = task
                 
             loops += 1
             time.sleep(15)
