@@ -1,5 +1,6 @@
 import asana
 import json
+import pprint
 import threading
 import time
 import requests
@@ -39,32 +40,33 @@ class AsanaBot:
     def start(linker, logger, discord_webhook_url, asana_token, asana_workspace):
         """ Starts the bot from a thread """
         bot = AsanaBot(linker, logger, discord_webhook_url, asana_token, asana_workspace)
-        print(bot.send_message("```\nStart asana_discord bot: " + str(time.time()) + "\n```"))
+        # print(bot.send_message("```\nStart asana_discord bot: " + str(time.time()) + "\n```"))
         bot.run()
     
     def announce_event(self, event_type, task):
+        permalink_url = task["projects"][0]["permalink_url"]
+        task_link = '/'.join(permalink_url.split('/')[0:len(permalink_url.split('/'))-1]) + '/' + task["gid"]
         """ Creates the announcements """
         if event_type == "completed":
-            self.logger.debug("Announcing completion of a task")
-            if task["assignee"]:
-                message = "```css\n # Task Completed! - {} ({})```".format(
-                    task["name"], 
-                    task["assignee"]["name"]
-                )
-            else: # Non asigned
-                message = "```css\n # Task Completed! - {}```".format(task["name"])  
-            print(self.send_message(message))
-
+            color = "ini"
+            comment = "Task Completed!"
         elif event_type == "overdue":
-            self.logger.debug("Announcing overdue of a task")
-            if task["assignee"]:
-                message = "```glsl\n # Task Overdue! - {} ({})```".format(
-                    task["name"], 
-                    task["assignee"]["name"]
-                )
-            else: # Non asigned
-                message = "```glsl\n # Task Overdue! - {}```".format(task["name"])
-            print(self.send_message(message))
+            color = "css"
+            comment = "Task Overdue!"
+        elif event_type == "newtask":
+            color = "fix"
+            comment = "New task!"
+
+        self.logger.debug("Announcing: " + comment)
+        message = "{}\n```{}\n[ # {}: {} - {} ({})]```".format(
+            task_link, 
+            color, 
+            comment, 
+            task["name"], 
+            task["projects"][0]["name"], 
+            task["assignee"]
+        )
+        print(self.send_message(message))
 
     def send_message(self, msg):
         headers = {

@@ -1,4 +1,5 @@
 import datetime
+import pprint
 import time
 import traceback
 
@@ -49,6 +50,7 @@ class AsanaListener:
             iterator_type=None, 
             opt_expand="name,projects,parent,workspace,id,assignee,assignee_status,completed,completed_at,due_on,due_at,external,modified_at"
         )
+        # pprint.pprint(tasks[0])
 
         # Add all the tasks to the tasks list
         for task in tasks:
@@ -116,7 +118,7 @@ class AsanaListener:
                 else:
                     # Save the new task
                     self.tasks[task["gid"]] = task
-                
+                    self.linker.push("newtask", task)
             loops += 1
             time.sleep(15)
             
