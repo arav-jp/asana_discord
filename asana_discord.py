@@ -47,7 +47,10 @@ class AsanaBot:
         permalink_url = task["projects"][0]["permalink_url"]
         task_link = '/'.join(permalink_url.split('/')[0:len(permalink_url.split('/'))-1]) + '/' + task["gid"]
         """ Creates the announcements """
-        if event_type == "completed":
+        if event_type == "newstory":
+            color = "diff"
+            comment = "New story! " + task["last_story_html_text"] 
+        elif event_type == "completed":
             color = "ini"
             comment = "Task Completed!"
         elif event_type == "overdue":
@@ -57,14 +60,19 @@ class AsanaBot:
             color = "fix"
             comment = "New task!"
 
+        pprint.pprint(task)
+        assignee_name = "-"
+        if task["assignee"] != None:
+            assignee_name = task["assignee"]["name"]
+
         self.logger.debug("Announcing: " + comment)
-        message = "{}\n```{}\n[ # {}: {} - {} ({})]```".format(
+        message = "{}\n{}\n```{}\n+[ # {}: {} - {}]```.\n".format(
+            assignee_name,
             task_link, 
             color, 
             comment, 
             task["name"], 
-            task["projects"][0]["name"], 
-            task["assignee"]
+            task["projects"][0]["name"]
         )
         print(self.send_message(message))
 

@@ -30,6 +30,51 @@ class AsanaListener:
         self.asana_restart_loops = 120
         self.overdued_tasks = []
         self.completed_tasks = []
+        self.fields = [
+            "gid",
+            "resource_type",
+            "created_at",
+            "created_by",
+            "resource_subtype",
+            "text",
+            "html_text",
+            "is_pinned",
+            "assignee",
+            "dependency",
+            "duplicate_of",
+            "duplicated_from",
+            "follower",
+            "hearted",
+            "hearts",
+            "is_edited",
+            "liked",
+            "likes",
+            "new_approval_status",
+            "new_dates",
+            "new_enum_value",
+            "new_name",
+            "new_number_value",
+            "new_resource_subtype",
+            "new_section",
+            "new_text_value",
+            "num_hearts",
+            "num_likes",
+            "old_approval_status",
+            "old_dates",
+            "old_enum_value",
+            "old_name",
+            "old_number_value",
+            "old_resource_subtype",
+            "old_section",
+            "old_text_value",
+            "preview",
+            "project",
+            "source",
+            "story",
+            "tag",
+            "target",
+            "task"
+        ]
 
     def listen_events(self, project):
         """ Listens for events from the target project """
@@ -55,6 +100,15 @@ class AsanaListener:
         # Add all the tasks to the tasks list
         for task in tasks:
             task["initial"] = True
+            temp_stories = self.asana_client.stories.get_stories_for_task(
+                task["gid"], 
+                opt_expand=",".join(self.fields), 
+                opt_pretty=True
+            )
+            stories = list(temp_stories)
+            stories_len = len(stories)
+            task["stories_len"] = stories_len
+            task["last_story_html_text"] = stories[stories_len-1]['html_text']
             self.tasks[task["gid"]] = task
 
         # Loop that checks for new tasks, completion of tasks and overdue of tasks.
@@ -77,8 +131,21 @@ class AsanaListener:
 
             # Update the tasks list
             for task in tasks:
+                temp_stories = self.asana_client.stories.get_stories_for_task(
+                    task["gid"], 
+                    opt_expand=",".join(self.fields), 
+                    opt_pretty=True
+                )
+                stories = list(temp_stories)
+                stories_len = len(stories)
+
                 # Check if the task exists already in the current tasks list
                 if task["gid"] in self.tasks:
+                    # New Story
+                    self.tasks[task["gid"]]["last_story_html_text"] = stories[stories_len-1]['html_text']
+                    if self.tasks[task["gid"]]["stories_len"] != stories_len:
+                        self.linker.push("newstory", self.tasks[task["gid"]])
+
                     # Check if it's completed
                     if task["completed"]:
                         # Check if we already have sent the announcement
@@ -97,7 +164,7 @@ class AsanaListener:
                             self.completed_tasks.append(task["gid"])
 
                     # Check if it's overdue
-                    elif task["due_on"]:
+                    if task["due_on"]:
                         
                         # Check if we already have sent the announcement
                         if task["gid"] in self.overdued_tasks:
@@ -115,10 +182,14 @@ class AsanaListener:
                             if int(time.time()) > real_overdue_timestamp:
                                 self.overdued_tasks.append(task["gid"])
                                 self.linker.push("overdue", task)
-                else:
+
+                elif task["name"]:
                     # Save the new task
                     self.tasks[task["gid"]] = task
                     self.linker.push("newtask", task)
+
+                self.tasks[task["gid"]]["stories_len"] = stories_len
+
             loops += 1
             time.sleep(15)
             
