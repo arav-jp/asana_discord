@@ -46,30 +46,35 @@ class AsanaBot:
     def announce_event(self, event_type, task):
         permalink_url = task["projects"][0]["permalink_url"]
         task_link = '/'.join(permalink_url.split('/')[0:len(permalink_url.split('/'))-1]) + '/' + task["gid"]
-        """ Creates the announcements """
-        if event_type == "newstory":
-            color = "diff"
-            comment = "New story! " + task["last_story_html_text"] 
-        elif event_type == "completed":
-            color = "ini"
-            comment = "Task Completed!"
-        elif event_type == "overdue":
-            color = "css"
-            comment = "Task Overdue!"
-        elif event_type == "newtask":
-            color = "fix"
-            comment = "New task!"
 
-        pprint.pprint(task)
+        # pprint.pprint(task)
         assignee_name = "-"
         if task["assignee"] != None:
             assignee_name = task["assignee"]["name"]
 
+        """ Creates the announcements """
+        if event_type == "newstory":
+            color = "diff"
+            assignee_name = task["last_created_by_name"] + " > " + assignee_name
+            comment = "New story! " + task["last_story_html_text"]
+        elif event_type == "completed":
+            color = "ini"
+            assignee_name = "assignee: " + assignee_name
+            comment = "Task Completed!"
+        elif event_type == "overdue":
+            color = "css"
+            assignee_name = "assignee: " + assignee_name
+            comment = "Task Overdue!"
+        elif event_type == "newtask":
+            color = "fix"
+            assignee_name = "assignee: " + assignee_name
+            comment = "New task!"
+
         self.logger.debug("Announcing: " + comment)
-        message = "{}\n{}\n```{}\n+[ # {}: {} - {}]```.\n".format(
-            assignee_name,
+        message = "{}\n```{}\n{}\n+[ # {}: {} - {}]```.\n".format(
             task_link, 
             color, 
+            assignee_name,
             comment, 
             task["name"], 
             task["projects"][0]["name"]

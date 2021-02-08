@@ -107,8 +107,9 @@ class AsanaListener:
             )
             stories = list(temp_stories)
             stories_len = len(stories)
-            task["stories_len"] = stories_len
+            task["last_stories_len"] = stories_len
             task["last_story_html_text"] = stories[stories_len-1]['html_text']
+            task["last_created_by_name"] = stories[stories_len-1]['created_by']['name']
             self.tasks[task["gid"]] = task
 
         # Loop that checks for new tasks, completion of tasks and overdue of tasks.
@@ -142,53 +143,53 @@ class AsanaListener:
                 # Check if the task exists already in the current tasks list
                 if task["gid"] in self.tasks:
                     # New Story
-                    self.tasks[task["gid"]]["last_story_html_text"] = stories[stories_len-1]['html_text']
-                    if self.tasks[task["gid"]]["stories_len"] != stories_len:
+                    last_story = stories[stories_len-1]
+                    self.tasks[task["gid"]]["last_story_html_text"] = last_story['html_text']
+                    self.tasks[task["gid"]]["last_created_by_name"] = last_story['created_by']['name']
+                    if self.tasks[task["gid"]]["last_stories_len"] != stories_len:
+                        # pprint.pprint(last_story)
+                        # print(self.tasks[task["gid"]]["last_stories_len"], stories_len)
                         self.linker.push("newstory", self.tasks[task["gid"]])
 
                     # Check if it's completed
                     if task["completed"]:
                         # Check if we already have sent the announcement
-                        if task["gid"] in self.completed_tasks:
-                            continue
-
-                        # Checks that the task was just completed
-                        saved_task_completed = self.tasks[task["gid"]]["completed"]
-                        if not saved_task_completed:
-                            self.linker.push("completed", task)
-                            self.completed_tasks.append(task["gid"])
-                            
-                        # Checks that the task was saved completed
-                        elif saved_task_completed and not self.tasks[task["gid"]].get("initial"):
-                            self.linker.push("completed", task)
-                            self.completed_tasks.append(task["gid"])
+                        if not task["gid"] in self.completed_tasks:
+                            # Checks that the task was just completed
+                            saved_task_completed = self.tasks[task["gid"]]["completed"]
+                            if not saved_task_completed:
+                                self.linker.push("completed", task)
+                                self.completed_tasks.append(task["gid"])
+                                
+                            # Checks that the task was saved completed
+                            elif saved_task_completed and not self.tasks[task["gid"]].get("initial"):
+                                self.linker.push("completed", task)
+                                self.completed_tasks.append(task["gid"])
 
                     # Check if it's overdue
                     if task["due_on"]:
-                        
                         # Check if we already have sent the announcement
-                        if task["gid"] in self.overdued_tasks:
-                            continue
-                        
-                        # Check the timestamp depending of the deadline style
-                        due_on_len = len(task["due_on"])
-                        initial_task = self.tasks[task["gid"]].get("initial")
-                        
-                        if due_on_len == 10 and not initial_task:
-                            task_timestamp = int(datetime.datetime.strptime(task["due_on"], "%Y-%m-%d").timestamp())
-                            real_overdue_timestamp = int(task_timestamp + 24*60*60) # Adds one day to the timestamp
-
-                            # Check if the overdue is correct
-                            if int(time.time()) > real_overdue_timestamp:
-                                self.overdued_tasks.append(task["gid"])
-                                self.linker.push("overdue", task)
+                        if not task["gid"] in self.overdued_tasks:
+                            # Check the timestamp depending of the deadline style
+                            due_on_len = len(task["due_on"])
+                            initial_task = self.tasks[task["gid"]].get("initial")
+                            
+                            if due_on_len == 10 and not initial_task:
+                                task_timestamp = int(datetime.datetime.strptime(task["due_on"], "%Y-%m-%d").timestamp())
+                                real_overdue_timestamp = int(task_timestamp + 24*60*60) # Adds one day to the timestamp
+    
+                                # Check if the overdue is correct
+                                if int(time.time()) > real_overdue_timestamp:
+                                    self.overdued_tasks.append(task["gid"])
+                                    self.linker.push("overdue", task)
 
                 elif task["name"]:
                     # Save the new task
                     self.tasks[task["gid"]] = task
                     self.linker.push("newtask", task)
 
-                self.tasks[task["gid"]]["stories_len"] = stories_len
+                if task["gid"] in self.tasks:
+                    self.tasks[task["gid"]]["last_stories_len"] = stories_len
 
             loops += 1
             time.sleep(15)
