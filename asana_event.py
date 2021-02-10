@@ -167,7 +167,7 @@ class AsanaListener:
                                 self.completed_tasks.append(task["gid"])
 
                     # Check if it's overdue
-                    if task["due_on"]:
+                    elif task["due_on"]:
                         # Check if we already have sent the announcement
                         if not task["gid"] in self.overdued_tasks:
                             # Check the timestamp depending of the deadline style
