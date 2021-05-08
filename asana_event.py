@@ -108,8 +108,12 @@ class AsanaListener:
             stories = list(temp_stories)
             stories_len = len(stories)
             task["last_stories_len"] = stories_len
-            task["last_story_html_text"] = stories[stories_len-1]['html_text']
-            task["last_created_by_name"] = stories[stories_len-1]['created_by']['name']
+            try:
+                task["last_story_html_text"] = stories[stories_len-1]['html_text']
+                task["last_created_by_name"] = stories[stories_len-1]['created_by']['name']
+            except Exception:
+                task["last_story_html_text"] = None
+                task["last_created_by_name"] = None
             self.tasks[task["gid"]] = task
 
         # Loop that checks for new tasks, completion of tasks and overdue of tasks.
@@ -144,8 +148,12 @@ class AsanaListener:
                 if task["gid"] in self.tasks:
                     # New Story
                     last_story = stories[stories_len-1]
-                    self.tasks[task["gid"]]["last_story_html_text"] = last_story['html_text']
-                    self.tasks[task["gid"]]["last_created_by_name"] = last_story['created_by']['name']
+                    try:
+                        self.tasks[task["gid"]]["last_story_html_text"] = last_story['html_text']
+                        self.tasks[task["gid"]]["last_created_by_name"] = last_story['created_by']['name']
+                    except Exception:
+                        self.tasks[task["gid"]]["last_story_html_text"] = None
+                        self.tasks[task["gid"]]["last_created_by_name"] = None
                     if self.tasks[task["gid"]]["last_stories_len"] != stories_len:
                         # pprint.pprint(last_story)
                         # print(self.tasks[task["gid"]]["last_stories_len"], stories_len)
